@@ -1,0 +1,22 @@
+I'll plan the visual components carefully then build a rich, interactive mockup with the game world, HUD, tile states, and NPC showcase all in one.
+
+Here's what the asset file includes — all interactive:
+
+**Game Screen (top section)**
+- Full 10×7 town grid with 5 tile types: River, Park, Residential, Farm, and Community Center
+- HUD bar showing Day, Energy ⚡, Time ⏱, active NPCs, and the 3 domain meters (Environment / Awareness / Community) with animated fills
+- 4 action buttons — Clean River, Educate, Plant Trees, Organize — each deducts the correct resources and is disabled when you can't afford it
+
+**Click any action button to see:**
+- A color flash on the affected tile
+- Concentric ripple rings radiating outward
+- Neighbor tiles lighting up with influence pulses (staggered by distance)
+- Tiles gradually shifting color and icon as their score improves (e.g. river goes from 🌫️ → 🌊 → 🐟)
+- NPCs transitioning from grey → yellow pulse (curious) → green pulse (active), with a notification popup
+- River tiles have a continuous shimmer animation to suggest moving water
+
+**Tile State Library (below the game)**
+All 5 tile types shown across 3 states each (polluted → transitioning → clean), with the exact colors and icons that drive in-game rendering.
+
+**NPC State Showcase**
+All 3 NPC states with their map dot colors, pulse behavior, awareness threshold logic, and character voice.
