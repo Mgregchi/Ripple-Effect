@@ -1,22 +1,735 @@
-I'll plan the visual components carefully then build a rich, interactive mockup with the game world, HUD, tile states, and NPC showcase all in one.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ripple Effect — Visual Assets</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #091510;
+  --bg2:      #0f2018;
+  --hud-bg:   rgba(6,18,12,0.94);
+  --green:    #72d44a;
+  --teal:     #3ecfc6;
+  --yellow:   #f5cc52;
+  --coral:    #ff6b72;
+  --orange:   #ff8c5a;
+  --text:     #cceedd;
+  --dim:      #5a9970;
+  --border:   rgba(114,212,74,0.12);
+}
+*{margin:0;padding:0;box-sizing:border-box}
 
-Here's what the asset file includes — all interactive:
+body {
+  background: var(--bg);
+  font-family: 'Nunito', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+}
 
-**Game Screen (top section)**
-- Full 10×7 town grid with 5 tile types: River, Park, Residential, Farm, and Community Center
-- HUD bar showing Day, Energy ⚡, Time ⏱, active NPCs, and the 3 domain meters (Environment / Awareness / Community) with animated fills
-- 4 action buttons — Clean River, Educate, Plant Trees, Organize — each deducts the correct resources and is disabled when you can't afford it
+body::before {
+  content:'';
+  position:fixed;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 10%, rgba(50,180,100,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 80% 90%, rgba(62,207,198,0.05) 0%, transparent 60%);
+}
 
-**Click any action button to see:**
-- A color flash on the affected tile
-- Concentric ripple rings radiating outward
-- Neighbor tiles lighting up with influence pulses (staggered by distance)
-- Tiles gradually shifting color and icon as their score improves (e.g. river goes from 🌫️ → 🌊 → 🐟)
-- NPCs transitioning from grey → yellow pulse (curious) → green pulse (active), with a notification popup
-- River tiles have a continuous shimmer animation to suggest moving water
+/* ── HEADER ─────────────────────────────────── */
+.header {
+  text-align:center;
+  padding:36px 20px 12px;
+  position:relative;
+}
+.header h1 {
+  font-family:'Fredoka One',cursive;
+  font-size:clamp(2rem,5vw,3.2rem);
+  background:linear-gradient(135deg,var(--green) 0%,var(--teal) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter: drop-shadow(0 0 24px rgba(114,212,74,0.3));
+}
+.header p {
+  color:var(--dim);font-size:.82rem;font-weight:700;
+  margin-top:6px;letter-spacing:.05em;text-transform:uppercase;
+}
 
-**Tile State Library (below the game)**
-All 5 tile types shown across 3 states each (polluted → transitioning → clean), with the exact colors and icons that drive in-game rendering.
+/* ── GAME WRAP ───────────────────────────────── */
+.game-wrap {
+  max-width:720px;margin:24px auto;padding:0 16px;
+}
 
-**NPC State Showcase**
-All 3 NPC states with their map dot colors, pulse behavior, awareness threshold logic, and character voice.
+/* ── HUD ─────────────────────────────────────── */
+.hud {
+  background:var(--hud-bg);
+  border:1px solid var(--border);
+  border-bottom:none;
+  border-radius:14px 14px 0 0;
+  padding:10px 16px;
+  display:flex;align-items:center;gap:12px;
+  backdrop-filter:blur(12px);
+  flex-wrap:wrap;
+}
+.hud-day {
+  font-family:'Fredoka One',cursive;
+  font-size:.85rem;color:var(--dim);white-space:nowrap;
+}
+.hud-day b{color:var(--yellow);font-size:1rem;}
+.hud-res {display:flex;gap:6px;}
+.res-pill {
+  display:flex;align-items:center;gap:4px;
+  background:rgba(255,255,255,0.05);
+  border-radius:20px;padding:3px 9px;
+  font-size:.72rem;font-weight:800;
+}
+.res-pill.ep{color:var(--coral);}
+.res-pill.tp{color:var(--yellow);}
+.hud-npc {
+  font-family:'Fredoka One',cursive;
+  font-size:.82rem;color:var(--teal);
+  white-space:nowrap;margin-left:auto;
+}
+.meters{display:flex;gap:10px;align-items:center;}
+.meter{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:58px;}
+.m-label{font-size:.55rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--dim);}
+.m-bar{width:100%;height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;}
+.m-fill{height:100%;border-radius:3px;transition:width 0.9s cubic-bezier(.4,0,.2,1);}
+.m-val{font-size:.62rem;font-weight:800;}
+.meter.e .m-fill{background:var(--green);}  .meter.e .m-val{color:var(--green);}
+.meter.a .m-fill{background:var(--yellow);} .meter.a .m-val{color:var(--yellow);}
+.meter.c .m-fill{background:var(--teal);}   .meter.c .m-val{color:var(--teal);}
+
+/* ── GAME WORLD ──────────────────────────────── */
+.world {
+  display:grid;
+  grid-template-columns:repeat(10,1fr);
+  gap:2px;
+  background:#040c07;
+  overflow:hidden;
+  border-left:1px solid var(--border);
+  border-right:1px solid var(--border);
+}
+.tile {
+  position:relative;
+  aspect-ratio:1.1/1;
+  display:flex;align-items:center;justify-content:center;
+  cursor:default;
+  z-index:1;
+  overflow:visible;
+  transition:filter .12s ease;
+}
+.tile:hover{filter:brightness(1.18);z-index:5;}
+.tile-bg {
+  position:absolute;inset:0;
+  transition:background 1.2s ease;
+  z-index:0;
+}
+.tile-icon {
+  font-size:clamp(7px,1.6vw,14px);
+  position:relative;z-index:2;
+  pointer-events:none;user-select:none;
+  opacity:.85;
+  transition:opacity .5s ease;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+.tile-npc {
+  position:absolute;top:18%;right:16%;
+  width:6px;height:6px;border-radius:50%;z-index:4;
+}
+.tile-npc.u{background:#556655;}
+.tile-npc.q{background:var(--yellow);animation:npulse 1.4s ease-in-out infinite;}
+.tile-npc.v{background:var(--green);animation:npulse 0.9s ease-in-out infinite;}
+@keyframes npulse{
+  0%,100%{transform:scale(1);box-shadow:0 0 0 0 currentColor;}
+  50%{transform:scale(1.5);box-shadow:0 0 0 2px rgba(114,212,74,0);}
+}
+.ripple-ring {
+  position:absolute;
+  width:100%;height:100%;
+  top:0;left:0;
+  border-radius:50%;
+  border:2px solid;
+  pointer-events:none;z-index:10;
+  animation:rout 1.1s ease-out forwards;
+}
+@keyframes rout{
+  0%{transform:scale(.2);opacity:.9;}
+  100%{transform:scale(3);opacity:0;}
+}
+.flash-layer {
+  position:absolute;inset:0;z-index:9;
+  pointer-events:none;
+  animation:fflash .45s ease-out forwards;
+}
+@keyframes fflash{0%{opacity:.7;}100%{opacity:0;}}
+.inf-pulse {
+  position:absolute;inset:0;z-index:8;
+  pointer-events:none;
+  animation:ifade .55s ease-out forwards;
+}
+@keyframes ifade{0%{opacity:.5;}100%{opacity:0;}}
+
+/* ── ACTION PANEL ────────────────────────────── */
+.actions {
+  background:var(--hud-bg);
+  border:1px solid var(--border);
+  border-top:none;
+  border-radius:0 0 14px 14px;
+  padding:12px 16px;
+  display:flex;gap:8px;
+  backdrop-filter:blur(12px);
+}
+.act-btn {
+  flex:1;border:none;border-radius:10px;
+  padding:10px 6px;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-weight:800;
+  font-size:.68rem;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  transition:transform .14s ease, box-shadow .14s ease, opacity .2s;
+  position:relative;overflow:hidden;
+}
+.act-btn .bi{font-size:1.25rem;}
+.act-btn .bl{color:rgba(255,255,255,.92);}
+.act-btn .bc{color:rgba(255,255,255,.55);font-size:.58rem;font-weight:700;}
+.act-btn:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.35);}
+.act-btn:active{transform:translateY(-1px);}
+.act-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+.act-btn.cl{background:linear-gradient(145deg,#123d52,#1a6a88);}
+.act-btn.ed{background:linear-gradient(145deg,#4a3a08,#7a6012);}
+.act-btn.pl{background:linear-gradient(145deg,#1a4a10,#307828);}
+.act-btn.or{background:linear-gradient(145deg,#4a1a08,#7a3518);}
+
+/* btn click ripple */
+.act-btn::after{
+  content:'';position:absolute;
+  width:120px;height:120px;
+  background:rgba(255,255,255,.09);
+  border-radius:50%;transform:scale(0);
+  top:50%;left:50%;translate:-50% -50%;
+}
+.act-btn.bclk::after{animation:bripple .5s ease-out;}
+@keyframes bripple{to{transform:scale(3);opacity:0;}}
+
+/* ── SEPARATOR ───────────────────────────────── */
+.sep{
+  max-width:720px;margin:44px auto 0;padding:0 16px;
+}
+.sep-line {
+  display:flex;align-items:center;gap:14px;
+  font-family:'Fredoka One',cursive;
+  font-size:1.3rem;color:var(--green);
+  letter-spacing:.02em;
+  margin-bottom:20px;
+}
+.sep-line::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── TILE SHOWCASE ───────────────────────────── */
+.tile-grid {
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:12px;
+  margin-bottom:16px;
+}
+.tc-col{display:flex;flex-direction:column;gap:6px;align-items:center;}
+.tc-head{
+  font-size:.6rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--dim);margin-bottom:2px;
+}
+.tc-tile{
+  width:100%;aspect-ratio:1;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;
+  position:relative;overflow:hidden;
+}
+.tc-tile .st-badge{
+  position:absolute;bottom:3px;
+  font-size:.48rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:.04em;color:rgba(255,255,255,.7);
+  background:rgba(0,0,0,.35);padding:1px 5px;border-radius:3px;
+}
+
+/* ── NPC SHOWCASE ────────────────────────────── */
+.npc-row{display:flex;gap:12px;margin-top:4px;}
+.npc-card {
+  flex:1;
+  background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;padding:18px 14px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.npc-av{
+  width:52px;height:52px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.6rem;
+}
+.npc-av.u{background:#1e3322;}
+.npc-av.q{background:#3d2f00;animation:npulse 1.4s ease-in-out infinite;}
+.npc-av.v{background:#0e3318;animation:npulse 1s ease-in-out infinite;}
+.npc-name{font-family:'Fredoka One',cursive;font-size:.88rem;}
+.npc-meta{font-size:.62rem;color:var(--dim);font-weight:700;text-align:center;line-height:1.4;}
+.npc-quote{
+  background:rgba(255,255,255,.05);
+  border-radius:8px;padding:6px 10px;
+  font-size:.62rem;color:var(--dim);font-style:italic;text-align:center;
+  border-left:2px solid var(--border);
+}
+.npc-dot-ex{
+  width:8px;height:8px;border-radius:50%;
+}
+.npc-dot-ex.u{background:#556655;}
+.npc-dot-ex.q{background:var(--yellow);animation:npulse 1.4s ease-in-out infinite;}
+.npc-dot-ex.v{background:var(--green);animation:npulse 1s ease-in-out infinite;}
+
+/* ── SCORE DISPLAY ───────────────────────────── */
+.score-overlay {
+  position:fixed;bottom:16px;right:16px;
+  background:rgba(6,18,12,.92);border:1px solid var(--border);
+  border-radius:12px;padding:12px 16px;
+  font-family:'Fredoka One',cursive;
+  font-size:.82rem;color:var(--dim);
+  backdrop-filter:blur(8px);
+  display:none;
+  z-index:100;
+}
+.score-overlay.show{display:block;animation:sfadein .4s ease;}
+@keyframes sfadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.score-overlay b{color:var(--green);}
+
+footer{
+  text-align:center;padding:32px 20px 48px;
+  color:var(--dim);font-size:.72rem;font-weight:700;
+  letter-spacing:.04em;opacity:.6;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🌊 Ripple Effect</h1>
+  <p>Visual Design Assets & Interactive Mockup — Internal Reference</p>
+</div>
+
+<!-- ═══ GAME SCREEN ═══ -->
+<div class="game-wrap">
+
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-day">Day <b id="hday">1</b></div>
+    <div class="hud-res">
+      <div class="res-pill ep">⚡ <span id="henergy">80</span></div>
+      <div class="res-pill tp">⏱ <span id="htime">10</span></div>
+    </div>
+    <div class="hud-npc">👥 <span id="hnpc">0</span> active</div>
+    <div class="meters">
+      <div class="meter e">
+        <div class="m-label">Environ</div>
+        <div class="m-bar"><div class="m-fill" id="ebar" style="width:15%"></div></div>
+        <div class="m-val" id="eval">15</div>
+      </div>
+      <div class="meter a">
+        <div class="m-label">Aware</div>
+        <div class="m-bar"><div class="m-fill" id="abar" style="width:10%"></div></div>
+        <div class="m-val" id="aval">10</div>
+      </div>
+      <div class="meter c">
+        <div class="m-label">Comm</div>
+        <div class="m-bar"><div class="m-fill" id="cbar" style="width:5%"></div></div>
+        <div class="m-val" id="cval">5</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WORLD -->
+  <div class="world" id="world"></div>
+
+  <!-- ACTIONS -->
+  <div class="actions">
+    <button class="act-btn cl" id="btn-clean" onclick="act('clean')">
+      <span class="bi">🌊</span><span class="bl">Clean River</span><span class="bc">⚡10 ⏱2</span>
+    </button>
+    <button class="act-btn ed" id="btn-educate" onclick="act('educate')">
+      <span class="bi">📚</span><span class="bl">Educate</span><span class="bc">⚡6 ⏱1</span>
+    </button>
+    <button class="act-btn pl" id="btn-plant" onclick="act('plant')">
+      <span class="bi">🌱</span><span class="bl">Plant Trees</span><span class="bc">⚡8 ⏱2</span>
+    </button>
+    <button class="act-btn or" id="btn-organize" onclick="act('organize')">
+      <span class="bi">🤝</span><span class="bl">Organize</span><span class="bc">⚡15 ⏱3</span>
+    </button>
+  </div>
+</div>
+
+<!-- ═══ TILE ASSET LIBRARY ═══ -->
+<div class="sep">
+
+  <div class="sep-line">Tile States</div>
+  <div class="tile-grid">
+
+    <div class="tc-col">
+      <div class="tc-head">River</div>
+      <div class="tc-tile" style="background:#221408">🌫️<div class="st-badge">Polluted</div></div>
+      <div class="tc-tile" style="background:#134055">🌊<div class="st-badge">Clearing</div></div>
+      <div class="tc-tile" style="background:#2aafcc">🐟<div class="st-badge">Clean</div></div>
+    </div>
+
+    <div class="tc-col">
+      <div class="tc-head">Park</div>
+      <div class="tc-tile" style="background:#2a2610">🍂<div class="st-badge">Dry</div></div>
+      <div class="tc-tile" style="background:#1e4818">🌿<div class="st-badge">Growing</div></div>
+      <div class="tc-tile" style="background:#3aaa48">🌳<div class="st-badge">Thriving</div></div>
+    </div>
+
+    <div class="tc-col">
+      <div class="tc-head">Residential</div>
+      <div class="tc-tile" style="background:#222222">🏚️<div class="st-badge">Neglected</div></div>
+      <div class="tc-tile" style="background:#3a3530">🏠<div class="st-badge">Aware</div></div>
+      <div class="tc-tile" style="background:#d4892a">🏡<div class="st-badge">Vibrant</div></div>
+    </div>
+
+    <div class="tc-col">
+      <div class="tc-head">Farm</div>
+      <div class="tc-tile" style="background:#2e2010">🏜️<div class="st-badge">Barren</div></div>
+      <div class="tc-tile" style="background:#284810">🌾<div class="st-badge">Growing</div></div>
+      <div class="tc-tile" style="background:#7ab836">🌽<div class="st-badge">Fertile</div></div>
+    </div>
+
+    <div class="tc-col">
+      <div class="tc-head">Community</div>
+      <div class="tc-tile" style="background:#241610">🏗️<div class="st-badge">Inactive</div></div>
+      <div class="tc-tile" style="background:#4a2e18">🏛️<div class="st-badge">Building</div></div>
+      <div class="tc-tile" style="background:#e07040">🎪<div class="st-badge">Active</div></div>
+    </div>
+
+  </div>
+
+  <div class="sep-line" style="margin-top:32px">NPC States</div>
+  <div class="npc-row">
+
+    <div class="npc-card">
+      <div class="npc-av u">😐</div>
+      <div class="npc-name" style="color:#7aaa8a">Unaware</div>
+      <div style="display:flex;align-items:center;gap:5px;margin:-2px 0 2px">
+        <div class="npc-dot-ex u"></div>
+        <span style="font-size:.58rem;color:var(--dim)">Grey dot · no pulse</span>
+      </div>
+      <div class="npc-meta">Influence below 50% threshold.<br>Contributes nothing yet.</div>
+      <div class="npc-quote">"Nothing seems different today..."</div>
+    </div>
+
+    <div class="npc-card">
+      <div class="npc-av q">🤔</div>
+      <div class="npc-name" style="color:var(--yellow)">Curious</div>
+      <div style="display:flex;align-items:center;gap:5px;margin:-2px 0 2px">
+        <div class="npc-dot-ex q"></div>
+        <span style="font-size:.58rem;color:var(--dim)">Yellow · slow pulse</span>
+      </div>
+      <div class="npc-meta">Influence ≥ 50% of threshold.<br>On the verge of joining.</div>
+      <div class="npc-quote">"Something is changing here..."</div>
+    </div>
+
+    <div class="npc-card">
+      <div class="npc-av v">😊</div>
+      <div class="npc-name" style="color:var(--green)">Active</div>
+      <div style="display:flex;align-items:center;gap:5px;margin:-2px 0 2px">
+        <div class="npc-dot-ex v"></div>
+        <span style="font-size:.58rem;color:var(--dim)">Green · fast pulse</span>
+      </div>
+      <div class="npc-meta">Threshold crossed. Joins movement.<br>Contributes +0.5 energy/turn.</div>
+      <div class="npc-quote">"I want to help build this!"</div>
+    </div>
+
+  </div>
+
+</div>
+
+<footer>Ripple Effect · Visual Asset Reference v1.0 · Internal Use Only</footer>
+
+<!-- ═══ NOTIFICATION ═══ -->
+<div class="score-overlay" id="notif"></div>
+
+<script>
+/* ────────────────────────── DATA ────────────────────────── */
+const COLS=10,ROWS=7;
+
+const MAP=[
+  ['res','res','res','res','res','res','res','res','res','res'],
+  ['res','park','park','park','park','park','park','park','park','res'],
+  ['res','park','park','park','park','park','park','park','park','res'],
+  ['riv','riv','riv','riv','riv','riv','riv','riv','riv','riv'],
+  ['riv','riv','riv','riv','riv','riv','riv','riv','riv','riv'],
+  ['farm','farm','farm','farm','comm','comm','farm','farm','farm','farm'],
+  ['farm','farm','farm','farm','comm','comm','farm','farm','farm','farm'],
+];
+
+const COLORS={
+  riv: {p:'#221408',c:'#2aafcc'},
+  park:{p:'#2a2610',c:'#3aaa48'},
+  res: {p:'#222222',c:'#d4892a'},
+  farm:{p:'#2e2010',c:'#7ab836'},
+  comm:{p:'#241610',c:'#e07040'},
+};
+
+const ICONS={
+  riv: {p:'🌫️',m:'🌊',c:'🐟'},
+  park:{p:'🍂',m:'🌿',c:'🌳'},
+  res: {p:'🏚️',m:'🏠',c:'🏡'},
+  farm:{p:'🏜️',m:'🌾',c:'🌽'},
+  comm:{p:'🏗️',m:'🏛️',c:'🎪'},
+};
+
+const ACTS={
+  clean:   {id:'clean',   target:'riv',  cost:{e:10,t:2}, imp:{env:8,awa:3,com:1},  rc:'rgba(56,175,204,0.75)'},
+  educate: {id:'educate', target:'res',  cost:{e:6, t:1}, imp:{env:1,awa:10,com:3}, rc:'rgba(245,204,82,0.75)'},
+  plant:   {id:'plant',   target:'park', cost:{e:8, t:2}, imp:{env:5,awa:2,com:4},  rc:'rgba(114,212,74,0.75)'},
+  organize:{id:'organize',target:'comm', cost:{e:15,t:3}, imp:{env:2,awa:8,com:15}, rc:'rgba(224,112,64,0.75)'},
+};
+
+/* ────────────────────────── STATE ────────────────────────── */
+let S={
+  day:1,energy:80,time:10,
+  env:15,awa:10,com:5,
+  npcs:0,actCount:0,
+  tiles:MAP.map(row=>row.map(type=>({
+    type,
+    score:type==='riv'?10:type==='res'?35:type==='comm'?28:20,
+    npcAware:0,
+    npcThresh:15+Math.random()*22,
+    npcHas:Math.random()>.55,
+    npcState:'u',
+  })))
+};
+
+/* ────────────────────────── HELPERS ────────────────────────── */
+function lerp(a,b,t){
+  t=Math.max(0,Math.min(1,t));
+  const pa=ph(a),pb=ph(b);
+  return `rgb(${r(pa[0]+(pb[0]-pa[0])*t)},${r(pa[1]+(pb[1]-pa[1])*t)},${r(pa[2]+(pb[2]-pa[2])*t)})`;
+}
+function ph(h){const n=parseInt(h.slice(1),16);return[(n>>16)&255,(n>>8)&255,n&255];}
+function r(v){return Math.round(v);}
+
+function tileColor(type,score){
+  const c=COLORS[type];const t=score/100;
+  return lerp(c.p,c.c,t);
+}
+function tileIcon(type,score){
+  const ic=ICONS[type];
+  if(score<38)return ic.p;
+  if(score<70)return ic.m;
+  return ic.c;
+}
+
+/* ────────────────────────── BUILD WORLD ────────────────────── */
+let TEL=[];
+
+function buildWorld(){
+  const world=document.getElementById('world');
+  world.innerHTML='';TEL=[];
+  S.tiles.forEach((row,ri)=>{
+    const re=[];
+    row.forEach((tile,ci)=>{
+      const el=document.createElement('div');
+      el.className='tile';
+
+      const bg=document.createElement('div');
+      bg.className='tile-bg';
+      el.appendChild(bg);
+
+      const ic=document.createElement('span');
+      ic.className='tile-icon';
+      el.appendChild(ic);
+
+      if(tile.npcHas){
+        const dot=document.createElement('div');
+        dot.className='tile-npc u';
+        el.appendChild(dot);
+      }
+
+      world.appendChild(el);
+      re.push(el);
+      paintTile(el,tile);
+    });
+    TEL.push(re);
+  });
+}
+
+function paintTile(el,tile){
+  const bg=el.querySelector('.tile-bg');
+  bg.style.background=tileColor(tile.type,tile.score);
+  const ic=el.querySelector('.tile-icon');
+  if(ic)ic.textContent=tileIcon(tile.type,tile.score);
+  const dot=el.querySelector('.tile-npc');
+  if(dot)dot.className='tile-npc '+tile.npcState;
+}
+
+function paintAll(){
+  S.tiles.forEach((row,ri)=>row.forEach((tile,ci)=>paintTile(TEL[ri][ci],tile)));
+}
+
+/* ────────────────────────── HUD ────────────────────────── */
+function hud(){
+  document.getElementById('hday').textContent=S.day;
+  document.getElementById('henergy').textContent=Math.round(S.energy);
+  document.getElementById('htime').textContent=S.time;
+  document.getElementById('hnpc').textContent=S.npcs;
+  ['env','awa','com'].forEach(k=>{
+    const v=Math.round(S[k]);
+    document.getElementById(k[0]+'bar').style.width=v+'%';
+    document.getElementById(k[0]+'val').textContent=v;
+  });
+}
+
+function refreshBtns(){
+  Object.values(ACTS).forEach(a=>{
+    const b=document.getElementById('btn-'+a.id);
+    b.disabled=S.energy<a.cost.e||S.time<a.cost.t;
+  });
+}
+
+/* ────────────────────────── ACTION ────────────────────────── */
+function act(id){
+  const a=ACTS[id];
+  if(S.energy<a.cost.e||S.time<a.cost.t)return;
+
+  // find eligible tiles
+  const pool=[];
+  S.tiles.forEach((row,ri)=>row.forEach((tile,ci)=>{
+    if(tile.type===a.target&&tile.score<95)pool.push({ri,ci,tile});
+  }));
+  if(!pool.length)return;
+
+  const {ri,ci,tile}=pool[Math.floor(Math.random()*pool.length)];
+
+  S.energy-=a.cost.e;
+  S.time-=a.cost.t;
+  S.actCount++;
+
+  // boost source tile
+  tile.score=Math.min(100,tile.score+16);
+
+  // ripple propagate
+  propagate(ri,ci,a);
+
+  // global meters
+  S.env=Math.min(100,S.env+a.imp.env*.55);
+  S.awa=Math.min(100,S.awa+a.imp.awa*.55);
+  S.com=Math.min(100,S.com+a.imp.com*.55);
+
+  // npc updates
+  updateNPCs(ri,ci,a);
+
+  // regen
+  S.energy=Math.min(100,S.energy+5+S.npcs*.5);
+  if(S.time<=0){S.day++;S.time=10;}
+
+  // animations
+  fireFlash(ri,ci,a.rc);
+  for(let d=1;d<=3;d++){
+    setTimeout(()=>fireRing(ri,ci,a.rc,d),d*70);
+  }
+
+  // btn animation
+  const btn=document.getElementById('btn-'+id);
+  btn.classList.add('bclk');
+  setTimeout(()=>btn.classList.remove('bclk'),500);
+
+  paintAll();hud();refreshBtns();
+}
+
+function propagate(ori,oci,a){
+  const DECAY=0.6,MR=3;
+  for(let dr=-MR;dr<=MR;dr++){
+    for(let dc=-MR;dc<=MR;dc++){
+      if(dr===0&&dc===0)continue;
+      const nr=ori+dr,nc=oci+dc;
+      if(nr<0||nr>=ROWS||nc<0||nc>=COLS)continue;
+      const dist=Math.max(Math.abs(dr),Math.abs(dc));
+      const str=12*Math.pow(DECAY,dist);
+      S.tiles[nr][nc].score=Math.min(100,S.tiles[nr][nc].score+str*.25);
+      setTimeout(()=>fireInf(nr,nc,a.rc),dist*110);
+    }
+  }
+}
+
+function updateNPCs(ori,oci,a){
+  S.tiles.forEach((row,ri)=>row.forEach((tile,ci)=>{
+    if(!tile.npcHas||tile.npcState==='v')return;
+    const dist=Math.max(Math.abs(ri-ori),Math.abs(ci-oci));
+    if(dist>4)return;
+    const inf=10*Math.pow(0.6,dist);
+    tile.npcAware+=inf;
+    if(tile.npcAware>=tile.npcThresh*.5&&tile.npcState==='u')tile.npcState='q';
+    if(tile.npcAware>=tile.npcThresh&&tile.npcState!=='v'){
+      tile.npcState='v';
+      S.npcs++;
+      S.com=Math.min(100,S.com+2.5);
+      showNotif(`+1 active member! (${S.npcs} total)`);
+    }
+  }));
+}
+
+/* ────────────────────────── ANIMATIONS ────────────────────── */
+function fireFlash(ri,ci,color){
+  const el=TEL[ri]?.[ci];if(!el)return;
+  el.style.zIndex=20;
+  const f=document.createElement('div');
+  f.className='flash-layer';
+  f.style.background=color;
+  el.appendChild(f);
+  setTimeout(()=>{f.remove();el.style.zIndex='';},500);
+}
+
+function fireRing(ri,ci,color,n){
+  const el=TEL[ri]?.[ci];if(!el)return;
+  const ring=document.createElement('div');
+  ring.className='ripple-ring';
+  ring.style.borderColor=color;
+  ring.style.color=color;
+  el.appendChild(ring);
+  setTimeout(()=>ring.remove(),1200);
+}
+
+function fireInf(ri,ci,color){
+  const el=TEL[ri]?.[ci];if(!el)return;
+  paintTile(el,S.tiles[ri][ci]);
+  const p=document.createElement('div');
+  p.className='inf-pulse';
+  p.style.background=color.replace('.75)','.18)');
+  el.appendChild(p);
+  setTimeout(()=>p.remove(),600);
+}
+
+/* ────────────────────────── NOTIF ──────────────────────────── */
+function showNotif(msg){
+  const n=document.getElementById('notif');
+  n.innerHTML=`<b>🌟</b> ${msg}`;
+  n.classList.add('show');
+  clearTimeout(n._t);
+  n._t=setTimeout(()=>n.classList.remove('show'),2800);
+}
+
+/* ────────────────────────── INIT ────────────────────────────── */
+buildWorld();
+hud();
+refreshBtns();
+
+// Subtle living world: river tiles shimmer slowly
+setInterval(()=>{
+  S.tiles.forEach((row,ri)=>row.forEach((tile,ci)=>{
+    if(tile.type==='riv'&&tile.score>40){
+      const el=TEL[ri]?.[ci];
+      if(el){
+        const bg=el.querySelector('.tile-bg');
+        if(bg){
+          const shift=(Math.sin(Date.now()/1200+ri+ci)*.5+.5);
+          const base=tileColor(tile.type,tile.score);
+          bg.style.filter=`brightness(${0.92+shift*.16})`;
+        }
+      }
+    }
+  }));
+},80);
+</script>
+
+</body>
+</html>
